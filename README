@@ -1,0 +1,23 @@
+TiMob-Module-Android-Thumbnail
+------------------------------
+
+How to use
+==========
+
+  * add project/modules/android(if !exits create dir) copy
+  
+  * append module directive
+    <ti:app>
+      :
+      :
+      <modules>
+        <module version="0.1">com.github.nowelium.titanium.module.thumbnail</module>
+      </modules>
+    </ti:app>
+    
+  * js code
+  
+    var thumbnail = require('com.github.nowelium.titanium.module.thumbnail');
+    var resizedBlob = thumbnail.resize(tiblob);
+    win.add(Ti.UI.createImageView({image: resizedBlob*)
+  

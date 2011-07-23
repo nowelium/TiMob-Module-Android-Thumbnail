@@ -8,46 +8,88 @@
  */
 package com.github.nowelium.titanium.module.thumbnail;
 
+import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollModule;
 import org.appcelerator.kroll.annotations.Kroll;
-
+import org.appcelerator.titanium.TiBlob;
 import org.appcelerator.titanium.TiContext;
 import org.appcelerator.titanium.util.Log;
 import org.appcelerator.titanium.util.TiConfig;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 
 @Kroll.module(name="Thumbnail", id="com.github.nowelium.titanium.module.thumbnail")
 public class ThumbnailModule extends KrollModule
 {
 
-	// Standard Debugging variables
-	private static final String LCAT = "ThumbnailModule";
-	private static final boolean DBG = TiConfig.LOGD;
+  // Standard Debugging variables
+  private static final String LCAT = "ThumbnailModule";
+  private static final boolean DBG = TiConfig.LOGD;
 
-	// You can define constants with @Kroll.constant, for example:
-	// @Kroll.constant public static final String EXTERNAL_NAME = value;
-	
-	public ThumbnailModule(TiContext tiContext) {
-		super(tiContext);
-	}
+  // You can define constants with @Kroll.constant, for example:
+  // @Kroll.constant public static final String EXTERNAL_NAME = value;
+  
+  public ThumbnailModule(TiContext tiContext) {
+    super(tiContext);
+  }
 
-	// Methods
-	@Kroll.method
-	public String example() {
-		Log.d(LCAT, "example called");
-		return "hello world";
-	}
-	
-	// Properties
-	@Kroll.getProperty
-	public String getExampleProp() {
-		Log.d(LCAT, "get example property");
-		return "hello world";
-	}
-	
-	
-	@Kroll.setProperty
-	public void setExampleProp(String value) {
-		Log.d(LCAT, "set example property: " + value);
-	}
+  // Methods
+  @Kroll.method
+  public TiBlob resize(TiBlob blob){
+    return resizeFromBlob(blob, 320, 480, true);
+  }
+  
+  @Kroll.method
+  public TiBlob resizeTo(TiBlob blob, KrollDict args){
+    int width = args.optInt("width", 320).intValue();
+    int height = args.optInt("height", 480).intValue();
+    boolean keepAspect = args.optBoolean("keepAspect", true);
+    
+    return resizeFromBlob(blob, width, height, keepAspect);
+  }
 
+  private TiBlob resizeFromBlob(TiBlob blob, int width, int height, boolean keepAspect){
+    byte[] binary = blob.getBytes();
+    final Bitmap target = BitmapFactory.decodeByteArray(binary, 0, binary.length);
+    final Bitmap resized = resizeToSize(target, width, height, keepAspect);
+    try {
+      return TiBlob.blobFromImage(context, resized);
+    } finally {
+      target.recycle();
+      resized.recycle();
+    }
+  }
+
+  private Bitmap resizeToSize(Bitmap bitmap, int targetWidth, int targetHeight, boolean preserveAspectRatio){
+    final int imageWidth = bitmap.getWidth();
+    final int imageHeight = bitmap.getHeight();
+    if(imageWidth < 1){
+      return Bitmap.createBitmap(bitmap, 0, 0, 0, 0);
+    }
+    if(imageHeight < 1){
+      return Bitmap.createBitmap(bitmap, 0, 0, 0, 0);
+    }
+    
+    final float aspectRatio = imageHeight / imageHeight;
+    final float targetAspectRatio = targetWidth / targetHeight;
+    final Matrix projectTo = new Matrix();
+    if (preserveAspectRatio) {
+      if (targetAspectRatio < aspectRatio) {
+        float width = targetWidth;
+        float height = width / aspectRatio;
+        projectTo.postScale(width / imageWidth, height / imageHeight);
+      } else {
+        float height = targetHeight;
+        float width = height * aspectRatio;
+        projectTo.postScale(width / imageWidth, height / imageHeight);
+      }
+    } else {
+      // Don't preserve the aspect ratio.
+      projectTo.postScale(targetWidth / imageWidth, targetHeight / imageHeight);
+    }    
+    return Bitmap.createBitmap(bitmap, 0, 0, imageWidth, imageHeight, projectTo, true);
+  }
+  
 }
