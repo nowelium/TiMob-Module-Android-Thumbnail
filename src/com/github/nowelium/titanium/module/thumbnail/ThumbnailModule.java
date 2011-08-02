@@ -8,6 +8,8 @@
  */
 package com.github.nowelium.titanium.module.thumbnail;
 
+import java.io.ByteArrayOutputStream;
+
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollModule;
 import org.appcelerator.kroll.annotations.Kroll;
@@ -17,19 +19,27 @@ import org.appcelerator.titanium.util.Log;
 import org.appcelerator.titanium.util.TiConfig;
 
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.webkit.MimeTypeMap;
 
 @Kroll.module(name="Thumbnail", id="com.github.nowelium.titanium.module.thumbnail")
 public class ThumbnailModule extends KrollModule
 {
-
+  
   // Standard Debugging variables
   private static final String LCAT = "ThumbnailModule";
   private static final boolean DBG = TiConfig.LOGD;
 
   // You can define constants with @Kroll.constant, for example:
   // @Kroll.constant public static final String EXTERNAL_NAME = value;
+  
+  @Kroll.constant
+  public static final String MIME_JPEG = "image/jpeg";
+  
+  @Kroll.constant
+  public static final String MIME_PNG = "image/png";
   
   public ThumbnailModule(TiContext tiContext) {
     super(tiContext);
@@ -38,7 +48,7 @@ public class ThumbnailModule extends KrollModule
   // Methods
   @Kroll.method
   public TiBlob resize(TiBlob blob){
-    return resizeFromBlob(blob, 320, 480, true);
+    return resizeFromBlob(blob, 320, 480, true, MIME_JPEG);
   }
   
   @Kroll.method
@@ -46,16 +56,33 @@ public class ThumbnailModule extends KrollModule
     int width = args.optInt("width", 320).intValue();
     int height = args.optInt("height", 480).intValue();
     boolean keepAspect = args.optBoolean("keepAspect", true);
+    String mimeType = args.optString("mimeType", MIME_JPEG);
     
-    return resizeFromBlob(blob, width, height, keepAspect);
+    return resizeFromBlob(blob, width, height, keepAspect, mimeType);
   }
-
-  private TiBlob resizeFromBlob(TiBlob blob, int width, int height, boolean keepAspect){
-    byte[] binary = blob.getBytes();
+  
+  private TiBlob compress(Bitmap bitmap, CompressFormat format, String mimeType){
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    if(bitmap.compress(format, 80, out)){
+      return TiBlob.blobFromData(context, out.toByteArray(), mimeType);
+    }
+    // defaults: PNG(TiBlob.java:76<compress>)
+    return TiBlob.blobFromImage(context, bitmap);
+  }
+  
+  private TiBlob compress(Bitmap bitmap, String mimeType){
+    if(MIME_PNG.equals(mimeType)){
+      return compress(bitmap, CompressFormat.PNG, MIME_PNG);
+    }
+    return compress(bitmap, CompressFormat.JPEG, MIME_JPEG);
+  }
+  
+  private TiBlob resizeFromBlob(TiBlob blob, int width, int height, boolean keepAspect, String mimeType){
+    final byte[] binary = blob.getBytes();
     final Bitmap target = BitmapFactory.decodeByteArray(binary, 0, binary.length);
     final Bitmap resized = resizeToSize(target, width, height, keepAspect);
     try {
-      return TiBlob.blobFromImage(context, resized);
+      return compress(resized, mimeType);
     } finally {
       target.recycle();
       resized.recycle();
