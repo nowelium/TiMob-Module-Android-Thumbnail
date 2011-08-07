@@ -53,16 +53,16 @@ public class ThumbnailModule extends KrollModule
   
   @Kroll.method
   public TiBlob resizeTo(TiBlob blob, KrollDict args){
-    int width = args.optInt("width", 320).intValue();
-    int height = args.optInt("height", 480).intValue();
-    boolean keepAspect = args.optBoolean("keepAspect", true);
-    String mimeType = args.optString("mimeType", MIME_JPEG);
+    final int width = args.optInt("width", 320).intValue();
+    final int height = args.optInt("height", 480).intValue();
+    final boolean keepAspect = args.optBoolean("keepAspect", true);
+    final String mimeType = args.optString("mimeType", MIME_JPEG);
     
     return resizeFromBlob(blob, width, height, keepAspect, mimeType);
   }
   
   private TiBlob compress(Bitmap bitmap, CompressFormat format, String mimeType){
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    final ByteArrayOutputStream out = new ByteArrayOutputStream();
     if(bitmap.compress(format, 80, out)){
       return TiBlob.blobFromData(context, out.toByteArray(), mimeType);
     }
@@ -90,12 +90,14 @@ public class ThumbnailModule extends KrollModule
   }
 
   private Bitmap resizeToSize(Bitmap bitmap, int targetWidth, int targetHeight, boolean preserveAspectRatio){
-    final int imageWidth = bitmap.getWidth();
-    final int imageHeight = bitmap.getHeight();
-    if(imageWidth < 1){
+    final int originalWidth = bitmap.getWidth();
+    final int originalHeight = bitmap.getHeight();
+    final float imageWidth = 0.0f + originalWidth;
+    final float imageHeight = 0.0f + originalHeight;
+    if(imageWidth < 1.0f){
       return Bitmap.createBitmap(bitmap, 0, 0, 0, 0);
     }
-    if(imageHeight < 1){
+    if(imageHeight < 1.0f){
       return Bitmap.createBitmap(bitmap, 0, 0, 0, 0);
     }
     
@@ -116,7 +118,7 @@ public class ThumbnailModule extends KrollModule
       // Don't preserve the aspect ratio.
       projectTo.postScale(targetWidth / imageWidth, targetHeight / imageHeight);
     }    
-    return Bitmap.createBitmap(bitmap, 0, 0, imageWidth, imageHeight, projectTo, true);
+    return Bitmap.createBitmap(bitmap, 0, 0, originalWidth, originalHeight, projectTo, true);
   }
   
 }
